@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from basicsr.utils.registry import ARCH_REGISTRY
 from typing import Union, Tuple, List
 
 
@@ -240,6 +241,7 @@ class upsampler(nn.Module):
         return x
 
 
+@ARCH_REGISTRY.register()
 class LFPN(nn.Module):
     def __init__(self,
                  in_channels: int,
