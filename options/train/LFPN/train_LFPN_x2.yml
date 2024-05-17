@@ -1,1 +1,108 @@
+# TODO
+# general settings
+name: LFPN_g6b1d72rd1_1000000
+model_type: SRModel
+scale: 2
+num_gpu: 1  # set num_gpu: 0 for cpu mode
+manual_seed: 10
 
+# dataset and data loader settings
+datasets:
+  train:
+    name: DIV2K
+    type: PairedImageDataset
+    # dataroot_gt: /root/autodl-tmp/DIV2K/DIV2K_train_HR_sub
+    # dataroot_lq: /root/autodl-tmp/DIV2K/DIV2K_train_LR_bicubic/X2_sub
+    # (for lmdb)
+    dataroot_gt: /root/autodl-tmp/DIV2K/DIV2K_train_HR_sub.lmdb
+    dataroot_lq: /root/autodl-tmp/DIV2K/DIV2K_train_LR_bicubic_X2_sub.lmdb
+    filename_tmpl: '{}'
+    io_backend:
+      # type: disk
+      # (for lmdb)
+      type: lmdb
+
+    gt_size: 96
+    use_hflip: true
+    use_rot: true
+
+    # data loader
+    num_worker_per_gpu: 12
+    batch_size_per_gpu: 16
+    dataset_enlarge_ratio: 100
+    prefetch_mode: ~
+
+  val:
+    name: Set5
+    type: PairedImageDataset
+    dataroot_gt: /root/autodl-tmp/Set5/original
+    dataroot_lq: /root/autodl-tmp/Set5/original_bicx2
+    io_backend:
+      type: disk
+
+# network structures
+network_g:
+  type: LFPN
+  in_channels: 3
+  out_channels: 3
+  n_groups: 6
+  n_blocks: 1
+  d_model: 72
+  reduction: 1
+  upscale: 2
+  act: SiLU
+
+# path
+path:
+  pretrain_network_g: ~
+  strict_load_g: true
+  resume_state: ~
+
+# training settings
+train:
+  ema_decay: 0.999
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: CosineAnnealingRestartLR
+    periods: [500000, 300000, 200000]
+    eta_min: !!float 1e-7
+    restart_weights: [2, 1, 1]
+
+  total_iter: 1000000
+  warmup_iter: -1  # no warm up
+
+  # losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+
+# validation settings
+val:
+  val_freq: !!float 5e2
+  save_img: false
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 2
+      test_y_channel: false
+
+# logging settings
+logger:
+  print_freq: 100
+  save_checkpoint_freq: !!float 5e3
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
